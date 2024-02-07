@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: rgb(255, 255, 255); /* Alteração na cor de fundo para azul (#5CE1E6 no sistema RGB) */
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 1050px; /* Defina o tamanho do quadrado cinza aqui */
+      height: 700px; /* Proporção 1:1 */
+      border: 2px solid #333;
+    }
+
+    #game-board {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      grid-template-rows: repeat(20, 1fr);
+    }
+
+    .snake {
+      width: calc(100% / 20);
+      height: calc(100% / 20);
+      box-sizing: border-box;
+      position: absolute;
+      background-color: #4CAF50;
+      border: 1px solid #333;
+      border-radius: 50%;
+    }
+
+    .fruit {
+      width: calc(100% / 20);
+      height: calc(100% / 20);
+      box-sizing: border-box;
+      position: absolute;
+      background-color: red; /* Alteração da cor para vermelho */
+      border: 1px solid #333;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: white;
+    }
+
+    .fruit::before {
+      content: 'F';
+    }
+
+    .score {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+  <title>Jogo da Julia/cobra</title>
+</head>
+<body>
+
+  <div id="game-container">
+    <div id="game-board"></div>
+    <div id="score" class="score">Score: 0</div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const gameContainer = document.getElementById('game-container');
+      const board = document.getElementById('game-board');
+      const scoreElement = document.getElementById('score');
+      const gridSize = { rows: 20, cols: 20 };
+      const cellSize = { width: 100 / gridSize.cols, height: 100 / gridSize.rows };
+      const initialSnake = [{ x: 10, y: 10 }]; // Inicializa a cobra no meio do tabuleiro
+      let snake = [...initialSnake];
+      let direction = 'right';
+      let fruit = generateFruit();
+      let score = 0;
+
+      function generateFruit() {
+        let newFruit;
+        do {
+          newFruit = {
+            x: Math.floor(Math.random() * gridSize.cols),
+            y: Math.floor(Math.random() * gridSize.rows)
+          };
+        } while (snake.some(segment => segment.x === newFruit.x && segment.y === newFruit.y));
+
+        return newFruit;
+      }
+
+      function draw() {
+        board.innerHTML = '';
+        drawSnake();
+        drawFruit();
+        updateScore();
+      }
+
+      function drawSnake() {
+        snake.forEach(segment => {
+          const snakeSegment = createSegment(segment.x, segment.y, 'snake');
+          board.appendChild(snakeSegment);
+        });
+      }
+
+      function drawFruit() {
+        const fruitSegment = createSegment(fruit.x, fruit.y, 'fruit');
+        board.appendChild(fruitSegment);
+      }
+
+      function createSegment(x, y, type) {
+        const segment = document.createElement('div');
+        segment.style.width = `${cellSize.width}%`;
+        segment.style.height = `${cellSize.height}%`;
+        segment.style.left = `${x * cellSize.width}%`;
+        segment.style.top = `${y * cellSize.height}%`;
+        segment.className = type;
+        return segment;
+      }
+
+      function update() {
+        const head = { ...snake[0] };
+
+        switch (direction) {
+          case 'up':
+            head.y = (head.y - 1 + gridSize.rows) % gridSize.rows;
+            break;
+          case 'down':
+            head.y = (head.y + 1) % gridSize.rows;
+            break;
+          case 'left':
+            head.x = (head.x - 1 + gridSize.cols) % gridSize.cols;
+            break;
+          case 'right':
+            head.x = (head.x + 1) % gridSize.cols;
+            break;
+        }
+
+        if (checkCollision(head) || checkWallCollision(head)) {
+          gameOver();
+          return;
+        }
+
+        snake.unshift(head);
+
+        if (head.x === fruit.x && head.y === fruit.y) {
+          score++;
+          if (score % 5 === 0) {
+            showGoodJobMessage();
+          }
+          if (score === 20) {
+            alert('Você venceu!');
+            resetGame();
+          } else {
+            fruit = generateFruit();
+          }
+        } else {
+          snake.pop();
+        }
+      }
+
+      function checkCollision(head) {
+        return snake.some(segment => segment.x === head.x && segment.y === head.y);
+      }
+
+      function checkWallCollision(head) {
+        return head.x < 0 || head.x >= gridSize.cols || head.y < 0 || head.y >= gridSize.rows;
+      }
+
+      function gameOver() {
+        alert('Game Over!');
+        resetGame();
+      }
+
+      function resetGame() {
+        snake = [...initialSnake];
+        direction = 'right';
+        fruit = generateFruit();
+        score = 0;
+        draw();
+      }
+
+      function showGoodJobMessage() {
+        if (score === 5) {
+          const message = document.createElement('div');
+          message.textContent = 'Mande Mensagem para o Gorilão para prosseguir';
+          message.style.position = 'absolute';
+          message.style.top = '50%';
+          message.style.left = '50%';
+          message.style.fontSize = '24px';
+          message.style.color = 'blue';
+          message.style.transform = 'translate(-50%, -50%)';
+          document.body.appendChild(message);
+          setTimeout(() => {
+            document.body.removeChild(message);
+          }, 3000);
+        }
+      }
+
+      function updateScore() {
+        scoreElement.textContent = `Score: ${score}`;
+      }
+
+      document.addEventListener('keydown', (event) => {
+        switch (event.key) {
+          case 'ArrowUp':
+            if (direction !== 'down') {
+              direction = 'up';
+            }
+            break;
+          case 'ArrowDown':
+            if (direction !== 'up') {
+              direction = 'down';
+            }
+            break;
+          case 'ArrowLeft':
+            if (direction !== 'right') {
+              direction = 'left';
+            }
+            break;
+          case 'ArrowRight':
+            if (direction !== 'left') {
+              direction = 'right';
+            }
+            break;
+        }
+      });
+
+      setInterval(() => {
+        update();
+        draw();
+      }, 200);
+    });
+  </script>
+
+</body>
+</html>
